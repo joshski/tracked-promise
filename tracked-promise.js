@@ -1,17 +1,12 @@
 const util = require("util");
 
-let globalCounter = 0;
-let globalPendingCount = 0;
-const globalPendingIds = {};
-const globalWaiters = [];
-
 class TrackedPromise {
   constructor(innerPromise, name) {
     this._innerPromise = innerPromise;
     this._name = name;
     this._id = globalCounter++;
     globalPendingCount++;
-    globalPendingIds[this._id] = new Error("Pending " + this._name);
+    globalPendingErrors[this._id] = new Error("Pending " + this._name);
     let inner = this._innerPromise;
     while (inner._innerPromise) inner = inner._innerPromise;
     inner.then(result => {
@@ -30,7 +25,7 @@ class TrackedPromise {
   }
 
   untrack() {
-    delete globalPendingIds[this._id];
+    delete globalPendingErrors[this._id];
     globalPendingCount--;
     if (globalPendingCount === 0) {
       globalWaiters.forEach(resolve => resolve());
@@ -43,17 +38,6 @@ class TrackedPromise {
       proxy[methodName] = TrackedPromise.wrapMethod(target, methodName);
     });
     return proxy;
-  }
-
-  static assertNoPendingPromisesOnReturn(fn, options = {}) {
-    return async function(...args) {
-      const result = fn.call(this, ...args);
-      if (typeof result === "object" && typeof result.then === "function") {
-        return result.then(() => TrackedPromise.assertNoPendingPromises());
-      } else {
-        return TrackedPromise.assertNoPendingPromises();
-      }
-    };
   }
 
   static wrapMethod(target, property) {
@@ -69,7 +53,7 @@ class TrackedPromise {
     };
   }
 
-  static waitForPendingPromisesToFinish(giveUpAfterMilliseconds = 500) {
+  static waitForPendingPromisesToFinish(waitMilliseconds = 500) {
     if (globalPendingCount === 0) {
       return Promise.resolve();
     }
@@ -78,23 +62,39 @@ class TrackedPromise {
       setTimeout(function() {
         giveUpError.message =
           "Gave up waiting for:\n" +
-          Object.values(globalPendingIds)
+          Object.values(globalPendingErrors)
             .map(e => e.message + "\n" + cleanStack(e.stack))
             .join("\n");
         reject(giveUpError);
-      }, giveUpAfterMilliseconds);
+      }, waitMilliseconds);
       globalWaiters.push(resolve);
     });
   }
 
   static assertNoPendingPromises() {
-    const stacks = Object.values(globalPendingIds).map(e =>
+    const stacks = Object.values(globalPendingErrors).map(e =>
       cleanStack(e.stack)
     );
     if (stacks.length > 0)
       throw new Error("Pending promises:\n" + stacks.join("\n"));
   }
+
+  static assertNoPendingPromisesAfter(fn) {
+    return async function(...args) {
+      const result = fn.call(this, ...args);
+      if (typeof result === "object" && typeof result.then === "function") {
+        return result.then(() => TrackedPromise.assertNoPendingPromises());
+      } else {
+        return TrackedPromise.assertNoPendingPromises();
+      }
+    };
+  }
 }
+
+let globalCounter = 0;
+let globalPendingCount = 0;
+const globalPendingErrors = {};
+const globalWaiters = [];
 
 function methodsOf(obj) {
   if (obj === window) return ["fetch"];

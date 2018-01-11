@@ -2,7 +2,7 @@ const { Given, When, Then, setDefinitionFunctionWrapper } = require("cucumber");
 const assert = require("assert");
 const TrackedPromise = require("../../tracked-promise");
 
-setDefinitionFunctionWrapper(TrackedPromise.assertNoPendingPromisesOnReturn);
+setDefinitionFunctionWrapper(TrackedPromise.assertNoPendingPromisesAfter);
 
 Given("there is a donut in the database", async function() {
   this._database = TrackedPromise.createProxy(new Database());
@@ -28,7 +28,7 @@ Then("I should see the donut", async function() {
 
 When("I add a donut", async function() {
   document.body.querySelector("#add-donut-button").click();
-  await TrackedPromise.waitForPendingPromisesToFinish();
+  await TrackedPromise.waitForPendingPromisesToFinish(100);
 });
 
 Then("I should see two donuts", async function() {
@@ -76,7 +76,7 @@ class Database {
       setTimeout(() => {
         this._donuts.push(donut);
         resolve();
-      }, 2);
+      }, 20);
     });
   }
 
