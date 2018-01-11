@@ -6,7 +6,7 @@
     "test": "cucumber-electron"
   },
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "cucumber": "^3.2.1",
     "cucumber-electron":
       "https://github.com/cucumber/cucumber-electron.git#debug-module-support",
