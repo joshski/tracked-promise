@@ -15,12 +15,25 @@ class TrackedPromise {
         resolve(result);
       });
     });
+    inner.catch(result => {
+      return new Promise((resolve, reject) => {
+        this.untrack();
+        resolve(result);
+      });
+    });
   }
 
   then(onResolve, onReject) {
     return new TrackedPromise(
       this._innerPromise.then(onResolve, onReject),
       this._name + ".then(" + onResolve.toString() + ")"
+    );
+  }
+
+  catch(onReject) {
+    return new TrackedPromise(
+      this._innerPromise.catch(onReject),
+      this._name + ".catch(" + onReject.toString() + ")"
     );
   }
 
@@ -97,7 +110,7 @@ const globalPendingErrors = {};
 const globalWaiters = [];
 
 function methodsOf(obj) {
-  if (obj === window) return ["fetch"];
+  if (obj === global) return ["fetch"];
   return Object.getOwnPropertyNames(obj.constructor.prototype).filter(
     prop => prop !== "constructor" && typeof obj[prop] === "function"
   );
