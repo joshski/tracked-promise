@@ -1,0 +1,18 @@
+{
+  "name": "tracked-promise",
+  "version": "1.0.0",
+  "main": "tracked-promise.js",
+  "scripts": {
+    "test": "cucumber-electron"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "cucumber": "^3.2.1",
+    "cucumber-electron":
+      "https://github.com/cucumber/cucumber-electron.git#debug-module-support",
+    "electron": "^1.7.10",
+    "express": "^4.16.2",
+    "gherkin": "^5.0.0",
+    "trytryagain": "^1.2.0"
+  }
+}
